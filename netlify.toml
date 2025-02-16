@@ -1,0 +1,7 @@
+[build]
+  command = "quasar build"
+  publish = "dist/spa"
+
+[context.production.environment]
+  VITE_SUPABASE_URL = "https://dquyoulmkyrgcxdhjapf.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxdXlvdWxta3lyZ2N4ZGhqYXBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc2MzU0NzcsImV4cCI6MjA1MzIxMTQ3N30.2-ma_TWQsCDzs8faFQ5_oKyDgubG_JcgT4CSX4rljQs"
