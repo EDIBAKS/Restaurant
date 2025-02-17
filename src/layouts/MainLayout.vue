@@ -79,10 +79,10 @@ const storeEntries = useStoreEntries()
 const showFloating = ref(false) // Controls floating icon visibility
 
 const navLinks = [
-  { title: 'POS', icon: 'shopping_cart', link: '/pos' },
+  { title: 'POS', icon: 'shopping_cart', link: '/' },
   { title: 'Stock', icon: 'list', link: '/stock' },
-  { title: 'Wallet', icon: 'account_balance_wallet', link: '/expences' },
-  { title: 'Reports', icon: 'analytics', link: '/' },
+  { title: 'Wallet', icon: 'account_balance_wallet', link: '/expenses' },
+  { title: 'Reports', icon: 'analytics', link: '/error' },
   { title: 'Settings', icon: 'settings', link: '/settings' }
 ]
 

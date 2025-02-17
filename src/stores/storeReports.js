@@ -58,6 +58,18 @@ export const useStoreReports = defineStore('storeReports', () => {
     }
   };
 
+  const deleteSales = async (id) => {
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+  
+    if (!error) {
+      sales.value = sales.value.filter(receipt => receipt.id !== id);
+      return true; // Success
+    } else {
+      return false; // Failure
+    }
+  };
+  
+
   // **Fetch total income**
   const loadIncome = async () => {
     try {
@@ -208,6 +220,7 @@ export const useStoreReports = defineStore('storeReports', () => {
     totalExpenses,
     standingBalance,
     loadSales,
+    deleteSales,
     loadIncome,
     loadExpenses,
     addExpense,

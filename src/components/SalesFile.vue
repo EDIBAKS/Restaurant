@@ -18,7 +18,16 @@
       <q-list bordered separator>
         <q-card v-for="receipt in storeReports.sales" :key="receipt.id" class="q-mb-md">
           <q-card-section>
-            <div class="text-h6">Receipt Date: {{ new Date(receipt.created_at).toLocaleString() }}</div>
+            <div class="text-h6">
+              <div class="col">
+                Receipt Date: {{ new Date(receipt.created_at).toLocaleString() }}
+              </div>
+              <div class="col"> 
+      </div>
+             
+            </div>
+           
+
           </q-card-section>
 
           <q-separator />
@@ -40,9 +49,18 @@
 
           <q-separator />
 
-          <q-card-section class="text-right">
-            <div class="text-bold">Receipt Total: {{ computeReceiptTotal(receipt.items) }}{{ settings.currencySymbol }}</div>
-          </q-card-section>
+          <q-card-section class="row justify-between items-center">
+  <div class="text-bold">
+    Receipt Total: {{ computeReceiptTotal(receipt.items) }}{{ settings.currencySymbol }}
+  </div>
+  
+  <q-btn
+    icon="delete"
+    color="negative"
+    flat
+    @click="confirmDelete(receipt)"
+  />
+</q-card-section>
         </q-card>
       </q-list>
     </div>
@@ -60,6 +78,20 @@ onMounted(() => {
   storeReports.loadSales();
   storeReports.subscribeToSales();
 });
+
+const confirmDelete = async (receipt) => {
+  if (confirm(`Are you sure you want to delete this receipt?`)) {
+    const success = await storeReports.deleteSales(receipt.id);
+
+    if (success) {
+      alert('Receipt deleted successfully!');
+    } else {
+      alert('Failed to delete receipt.');
+    }
+  }
+};
+
+
 
 // Compute total for each receipt
 const computeReceiptTotal = (items) => {

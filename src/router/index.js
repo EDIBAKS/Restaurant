@@ -26,20 +26,20 @@ export default route(function (/* { store, ssrContext } */) {
     history: createHistory(process.env.VUE_ROUTER_BASE)
   })
 
-  Router.beforeEach(async (to, from, next) => { // Add async here
-    const authStore = useAuthStore();
+  //Router.beforeEach(async (to, from, next) => { // Add async here
+   // const authStore = useAuthStore();
   
-    if (to.meta.requiresAuth) {
-      if (!authStore.user) {
-        await authStore.fetchUser(); // Ensure user state is updated
-      }
-      if (!authStore.user) {
-        return next('/login'); // Redirect if still not authenticated
-      }
-    }
+   // if (to.meta.requiresAuth) {
+     // if (!authStore.user) {
+     //   await authStore.fetchUser(); // Ensure user state is updated
+    //  }
+    //  if (!authStore.user) {
+    //    return next('/login'); // Redirect if still not authenticated
+    //  }
+   // }
     
-    next();
-  });
+   // next();
+ // });
 
   return Router
 })
