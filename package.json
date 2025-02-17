@@ -21,6 +21,8 @@
     "@capacitor/dialog": "^6.0.0",
     "@quasar/extras": "^1.16.4",
     "@supabase/supabase-js": "^2.48.0",
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.4",
     "pinia": "^2.0.11",
     "quasar": "^2.16.0",
     "sortablejs": "^1.15.2",

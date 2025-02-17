@@ -1,6 +1,6 @@
 <template>
   <q-page padding>
-    <q-card class="q-pa-md">
+    <q-card class="q-pa-md" flat>
       <q-tabs v-model="activeTab">
         <q-tab name="pos" label="Point of Sale" />
         <q-tab name="sales" label="Daily Sales Report" />

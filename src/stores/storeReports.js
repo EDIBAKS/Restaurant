@@ -14,50 +14,110 @@ export const useStoreReports = defineStore('storeReports', () => {
   const totalIncome = ref(0);
   const totalExpenses = ref(0);
   const standingBalance = ref(0);
+  const startDate = ref('');
+  const endDate = ref('');
+  const searchQuery = ref('');
+  const loading = ref(false); // Loader state
 
   // Helper function to calculate total for orders
   const calculateOrderTotal = (items) => {
     return items.reduce((total, item) => total + item.quantity * item.price, 0);
   };
-
-  // **Fetch sales data**
+//the sales,sorts and search query are here
   const loadSales = async () => {
+    loading.value = true; // Show loader
     try {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false });
-
+  
       if (error) throw error;
-
-      sales.value = data.map(order => ({
-        ...order,
-        items: Array.isArray(order.items) ? order.items : JSON.parse(order.items || "[]"),
-        total: calculateOrderTotal(Array.isArray(order.items) ? order.items : JSON.parse(order.items || "[]"))
-      }));
-
-      // Compute sales totals
-      const currentDate = selectedDate.value;
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-
-      totalToday.value = sales.value.reduce((sum, order) => 
-        order.created_at.startsWith(currentDate) ? sum + order.total : sum, 0);
-
-      totalMonth.value = sales.value.reduce((sum, order) => {
-        const orderDate = new Date(order.created_at);
-        return (orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear) 
-          ? sum + order.total : sum;
-      }, 0);
-
-      totalSalesAllTime.value = sales.value.reduce((sum, order) => sum + order.total, 0);
-
-      calculateStandingBalance();
-    } catch (error) {
-      useShowErrorMessage(error.message);
+  
+      // Ensure we process the sales data correctly
+      sales.value = data
+        .map(order => {
+          const parsedItems = Array.isArray(order.items) ? order.items : JSON.parse(order.items || "[]");
+          return {
+            ...order,
+            items: parsedItems,
+            total: calculateOrderTotal(parsedItems)
+          };
+        })
+        .filter(receipt => {
+          const receiptDate = new Date(receipt.created_at).toISOString().split('T')[0]; // Get YYYY-MM-DD
+  
+          // Apply date range filtering
+          const withinDateRange = receiptDate >= startDate.value && receiptDate <= endDate.value;
+  
+          // Apply search query filtering
+          const matchesSearch = !searchQuery.value || receipt.items.some(item =>
+            item.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+          );
+  
+          return withinDateRange && matchesSearch;
+        });
+  
+    } catch (err) {
+      console.error('Error fetching sales:', err);
+    } finally {
+      loading.value = false; // Hide loader
     }
   };
 
+
+
+  const calculateStandingBalance = () => {
+    standingBalance.value = totalSalesAllTime.value + totalIncome.value - totalExpenses.value;
+  };
+  
+  // Watch for changes in sales, income, and expenses
+  watch([totalSalesAllTime, totalIncome, totalExpenses], calculateStandingBalance);
+  //calcilate total today
+  const loadTotalToday = async () => {
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+  
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .gte('created_at', today) // Get orders from today
+  
+      if (error) throw error;
+  
+      totalToday.value = data.reduce((sum, order) => {
+        const items = Array.isArray(order.items) ? order.items : JSON.parse(order.items || "[]");
+        return sum + items.reduce((t, item) => t + item.quantity * item.price, 0);
+      }, 0);
+    } catch (err) {
+      console.error("Error fetching today's total sales:", err);
+    }
+  };
+  //calculate total monthly
+  const loadTotalMonth = async () => {
+    const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .gte('created_at', firstDayOfMonth) // Get all orders from the start of the month
+        .lte('created_at', today);
+  
+      if (error) throw error;
+  
+      totalMonth.value = data.reduce((sum, order) => {
+        const items = Array.isArray(order.items) ? order.items : JSON.parse(order.items || "[]");
+        return sum + items.reduce((t, item) => t + item.quantity * item.price, 0);
+      }, 0);
+    } catch (err) {
+      console.error("Error fetching this month's total sales:", err);
+    }
+  };
+  
+ 
+//deleting sales is here
   const deleteSales = async (id) => {
     const { error } = await supabase.from('orders').delete().eq('id', id);
   
@@ -68,7 +128,8 @@ export const useStoreReports = defineStore('storeReports', () => {
       return false; // Failure
     }
   };
-  
+
+ 
 
   // **Fetch total income**
   const loadIncome = async () => {
@@ -83,8 +144,40 @@ export const useStoreReports = defineStore('storeReports', () => {
     }
   };
 
-  // **Fetch total expenses**
   const loadExpenses = async () => {
+    try {
+      const { data, error } = await supabase.from('expenses').select('amount');
+      if (error) throw error;
+  
+      totalExpenses.value = data.reduce((sum, record) => sum + record.amount, 0);
+      calculateStandingBalance(); // Update balance
+    } catch (error) {
+      console.error('Error loading expenses:', error.message);
+    }
+  };
+
+  const loadTotalSales = async () => {
+    try {
+      const { data: allOrders, error: allOrdersError } = await supabase
+        .from('orders')
+        .select('*');
+  
+      if (allOrdersError) throw allOrdersError;
+  
+      totalSalesAllTime.value = allOrders.reduce((sum, order) => {
+        const items = Array.isArray(order.items) ? order.items : JSON.parse(order.items || "[]");
+        return sum + items.reduce((t, item) => t + item.quantity * item.price, 0);
+      }, 0);
+  
+      calculateStandingBalance(); // Ensure balance updates correctly
+    } catch (err) {
+      console.error("Error loading total sales:", err);
+    }
+  };
+  
+
+  // **Fetch total expenses**
+  const loadExpenses1 = async () => {
     try {
       const { data, error } = await supabase
         .from('expenses')
@@ -150,12 +243,10 @@ export const useStoreReports = defineStore('storeReports', () => {
   };
 
   // **Calculate standing balance**
-  const calculateStandingBalance = () => {
-    standingBalance.value = totalSalesAllTime.value + totalIncome.value - totalExpenses.value;
-  };
+ 
 
   // **Real-time updates for sales**
-  const subscribeToSales = () => {
+  const subscribeToSales1 = () => {
     supabase
       .channel('orders')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
@@ -179,6 +270,32 @@ export const useStoreReports = defineStore('storeReports', () => {
       .subscribe();
   };
 
+  const subscribeToSales = () => {
+    supabase
+      .channel('orders')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+        const items = Array.isArray(payload.new.items) ? payload.new.items : JSON.parse(payload.new.items || "[]");
+        const newTotal = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
+        const orderDate = new Date(payload.new.created_at);
+        const today = new Date();
+        
+        // If the new sale is today, update totalToday
+        if (orderDate.toISOString().split("T")[0] === today.toISOString().split("T")[0]) {
+          totalToday.value += newTotal;
+        }
+  
+        // If the new sale is in this month, update totalMonth
+        if (orderDate.getMonth() === today.getMonth() && orderDate.getFullYear() === today.getFullYear()) {
+          totalMonth.value += newTotal;
+        }
+  
+        totalSalesAllTime.value += newTotal; // Update overall total
+        calculateStandingBalance();
+      })
+      .subscribe();
+  };
+  
+
   // **Real-time updates for expenses**
   const subscribeToExpenses = () => {
     supabase
@@ -200,14 +317,39 @@ export const useStoreReports = defineStore('storeReports', () => {
       .subscribe();
   };
 
+  // Set today's date as default
+  const setDefaultDates = () => {
+    const today = new Date().toISOString().split('T')[0];
+    startDate.value = today;
+    endDate.value = today;
+  };
+
+  // Reset filters to default (today's date)
+  const resetFilters = () => {
+    setDefaultDates();
+    searchQuery.value = ''; // Clear search
+    loadSales(); // Reload sales for today
+  };
+
   // **Load data on mount**
   onMounted(() => {
+    const today = new Date().toISOString().split('T')[0];  // YYYY-MM-DD format
+    startDate.value = today;
+    endDate.value = today;  // Default to today's date
     loadSales();
     loadIncome();
     loadExpenses();
+    loadTotalSales();
     subscribeToSales();
     subscribeToExpenses();
+    loadTotalToday(); // Get total sales for today
+     loadTotalMonth(); // Get total sales for this month
   });
+
+  // Watch for changes in startDate, endDate, or searchQuery, and reload sales
+watch([startDate, endDate, searchQuery], () => {
+  loadSales();
+});
 
   return {
     sales,
@@ -219,6 +361,10 @@ export const useStoreReports = defineStore('storeReports', () => {
     totalIncome,
     totalExpenses,
     standingBalance,
+    startDate,
+    endDate,
+    searchQuery,
+    loading,
     loadSales,
     deleteSales,
     loadIncome,
@@ -227,6 +373,7 @@ export const useStoreReports = defineStore('storeReports', () => {
     deleteExpense,
     subscribeToSales,
     subscribeToExpenses,
-    calculateStandingBalance
+    calculateStandingBalance,
+    resetFilters
   };
 });

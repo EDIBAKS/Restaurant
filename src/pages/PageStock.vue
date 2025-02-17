@@ -20,7 +20,7 @@
           </q-tab-panel>
 
           <q-tab-panel name="alarms">
-          Alarms
+         <stockReport/>
           </q-tab-panel>
 
           <q-tab-panel name="movies">
@@ -35,6 +35,7 @@
 <script setup>
 import { ref } from 'vue'
 import newStk from 'src/components/newStk.vue';
+import stockReport from 'src/components/stockReport.vue';
 const tab = ref('mails')
 </script>
 

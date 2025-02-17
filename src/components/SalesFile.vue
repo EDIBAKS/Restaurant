@@ -7,15 +7,28 @@
 </div>
  <!-- Button & Grand Total in the same line -->
  <div class="row items-center justify-between q-mt-md">
-      <q-btn @click="storeReports.loadSales" label="Search Sales" color="primary" class="q-mx-md" />
-
+     <q-btn @click="storeReports.loadSales" label="Search Sales" color="primary" class="q-mx-md" />     
+     <q-btn 
+    label="Export" 
+    icon="picture_as_pdf" 
+    color="primary" 
+    @click="generateSalesReport"
+    />
       <div class="grand-total">
         Grand Total: {{ computeGrandTotal.toLocaleString()}}{{ settings.currencySymbol }}
       </div>
       </div>
 
     <div class="q-mt-md">
-      <q-list bordered separator>
+      <div v-if="storeReports.loading" class="text-center q-mt-md">
+  <q-spinner color="primary" size="2em" />
+  <p>Loading sales...</p>
+</div>
+<div v-else-if="storeReports.sales.length === 0 && !storeReports.loading" class="text-center q-mt-md">
+  <p class="text-grey">No sales data found.</p>
+  <q-btn @click="storeReports.resetFilters" label="Reset Filters" color="secondary" class="q-mx-md" />
+</div>
+      <q-list v-else bordered separator>
         <q-card v-for="receipt in storeReports.sales" :key="receipt.id" class="q-mb-md">
           <q-card-section>
             <div class="text-h6">
@@ -68,15 +81,20 @@
 </template>
 
 <script setup>
-import { onMounted,computed } from 'vue';
+import { ref,onMounted,computed } from 'vue';
 import { useStoreReports } from '../stores/storeReports';
 import { useStoreSettings } from 'src/stores/storeSettings';
 const storeReports = useStoreReports();
 const { settings } = useStoreSettings()
+import { usePdfReport } from 'src/use/usePdfReport';
+const { generateReport } = usePdfReport();
+const currency = ref('');
 // Trigger fetching and real-time updates on component mount
 onMounted(() => {
-  storeReports.loadSales();
+  const today = new Date().toISOString().split('T')[0];  // YYYY-MM-DD format
+   storeReports.loadSales();
   storeReports.subscribeToSales();
+  currency.value = settings.currencySymbol || 'KSh'; 
 });
 
 const confirmDelete = async (receipt) => {
@@ -92,7 +110,109 @@ const confirmDelete = async (receipt) => {
 };
 
 
+// Convert sales data into a table format
+const generateSalesReport1 = () => {
+  if (!storeReports.sales || storeReports.sales.length === 0) {
+    console.error('No sales data available.');
+    return;
+  }
 
+  // Object to store grouped items
+  const groupedItems = {};
+
+  // Loop through receipts and group items by name
+  storeReports.sales.forEach((receipt) => {
+    receipt.items.forEach((item) => {
+      if (!groupedItems[item.name]) {
+        groupedItems[item.name] = {
+          name: item.name,
+          price: item.price,
+          quantity: 0,
+          total: 0
+        };
+      }
+      groupedItems[item.name].quantity += item.quantity;
+      groupedItems[item.name].total += item.price * item.quantity;
+    });
+  });
+
+  // Convert object into an array
+  const salesData = Object.values(groupedItems).map((item) => [
+    item.name,
+    `${item.price}${currency.value}`,
+    item.quantity,
+    `${item.total}${currency.value}`
+  ]);
+
+  const metadata = {
+    Date: new Date().toLocaleDateString(),
+    User: 'Gilbert'
+  };
+
+  generateReport({
+    title: 'Restaurant Sales Report',
+    metadata,
+    tableHeaders: ['Item', 'Price', 'Qty', 'Total'],
+    tableData: salesData,
+    filename: 'sales_report.pdf'
+  });
+};
+
+const generateSalesReport = () => {
+  if (!storeReports.sales || storeReports.sales.length === 0) {
+    console.error('No sales data available.');
+    return;
+  }
+
+  // Object to store grouped items
+  const groupedItems = {};
+  let grandTotal = 0;  // Variable to store grand total
+
+  // Loop through receipts and group items by name
+  storeReports.sales.forEach((receipt) => {
+    receipt.items.forEach((item) => {
+      if (!groupedItems[item.name]) {
+        groupedItems[item.name] = {
+          name: item.name,
+          price: item.price,
+          quantity: 0,
+          total: 0
+        };
+      }
+      groupedItems[item.name].quantity += item.quantity;
+      groupedItems[item.name].total += item.price * item.quantity;
+    });
+  });
+
+  // Convert object into an array
+  const salesData = Object.values(groupedItems).map((item) => {
+    grandTotal += item.total; // Summing up the grand total
+    return [
+      item.name,
+      `${item.price}${currency.value}`,
+      item.quantity,
+      `${item.total}${currency.value}`
+    ];
+  });
+
+  // Append Grand Total row at the end
+  salesData.push([
+    'Grand Total', '', '', `${grandTotal}${currency.value}`
+  ]);
+
+  const metadata = {
+    Date: new Date().toLocaleDateString(),
+    User: 'Cashier'
+  };
+
+  generateReport({
+    title: 'Restaurant Sales Report',
+    metadata,
+    tableHeaders: ['Item', 'Price', 'Qty', 'Total'],
+    tableData: salesData,
+    filename: 'sales_report.pdf'
+  });
+};
 // Compute total for each receipt
 const computeReceiptTotal = (items) => {
   if (!Array.isArray(items)) return 0;

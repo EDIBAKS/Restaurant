@@ -1,23 +1,12 @@
 <template>
     <q-page padding>
-      <q-card class="q-pa-md">
+      <q-card class="q-pa-md" flat>
         <q-card-section>
           <div class="text-h6">Point of Sale</div>
         </q-card-section>
   
         <q-card-section>
-          <!-- <q-select
-            v-model="selectedProduct"
-            :options="productOptions"
-            label="Select Product"
-            option-label="name"
-            option-value="id"
-            emit-value
-            map-options
-            filled
-            @update:model-value="updateProductDetails"
-          /> -->
-          <q-select
+         <q-select
         filled
         v-model="selectedProductId"
         :options="store.products"
@@ -27,17 +16,24 @@
         emit-value
         map-options
       />
-         
-      <q-input v-model="selectedProduct.description" label="Description" readonly filled class="q-mt-md" />
+         <q-input v-model="selectedProduct.description" label="Description" readonly filled class="q-mt-md" />
           <q-input v-model="selectedProduct.price" label="Price" readonly filled class="q-mt-md" />
-          <q-input type="number" v-model="selectedQuantity" label="Quantity"  filled class="q-mt-md" />
+          <q-input 
+          type="number" 
+          v-model="selectedQuantity" 
+          label="Quantity"  
+          filled 
+          class="q-mt-md"
+          :min="1"
+          @update:model-value="validateQuantity"
+          />
          
   
           <q-btn label="Add to Cart" color="primary" class="q-mt-md full-width" @click="addToCart" />
         </q-card-section>
       </q-card>
 
-      <q-card class="q-mt-md">
+      <q-card class="q-mt-md" flat>
   <q-card-section class="text-center">
     <div class="text-h6">Cart</div>
   </q-card-section>
@@ -172,6 +168,12 @@ const decreaseQuantity = (item) => {
     item.amount = item.price * item.quantity;
   } else {
     removeFromCart(item);
+  }
+};
+
+const validateQuantity = (value) => {
+  if (value < 1) {
+    selectedQuantity.value = 1;
   }
 };
 
