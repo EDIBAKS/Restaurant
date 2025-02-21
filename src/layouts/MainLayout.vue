@@ -3,6 +3,7 @@
     <q-header :elevated="useLightOrDark(true, false)">
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+        <!--
         <q-toolbar-title>
           <div class="absolute-center">
             <div class="toolbar-title-text">
@@ -11,11 +12,22 @@
             </div>
           </div>
         </q-toolbar-title>
+        -->
+        <ToolbarTitle/>
+        <!--
         <q-btn 
           v-if="$route.fullPath === '/'"
           @click="storeEntries.options.sort = !storeEntries.options.sort"
           :label="!storeEntries.options.sort ? 'Sort' : 'Done'"
           flat
+          no-caps
+          dense
+        />
+        -->
+        <q-btn
+         @click="storesAuth.logoutUser"
+         label="LogOut"
+         flat
           no-caps
           dense
         />
@@ -54,6 +66,18 @@
             <q-item-label>Quit</q-item-label>
           </q-item-section>
         </q-item>
+        <q-item  clickable>
+         
+          <q-item-section>
+            <q-item-label
+            v-if="storesAuth.userDetails.email"
+            class="text-white"
+             caption
+             >
+             {{ storesAuth.userDetails.email}}
+             </q-item-label>
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-drawer>
 
@@ -69,20 +93,23 @@ import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useStoreEntries } from 'src/stores/storeEntries'
 import { useLightOrDark } from 'src/use/useLightOrDark'
+import {useStoreAuth} from 'src/stores/storeAuth'
 import NavLink from 'components/Nav/NavLink.vue'
-
+import ToolbarTitle from 'src/components/ToolbarTitle.vue'
 defineOptions({ name: 'MainLayout' })
 
 const router = useRouter()
 const $q = useQuasar()
 const storeEntries = useStoreEntries()
+const storesAuth=useStoreAuth()
 const showFloating = ref(false) // Controls floating icon visibility
 
 const navLinks = [
+  
   { title: 'POS', icon: 'shopping_cart', link: '/' },
   { title: 'Stock', icon: 'list', link: '/stock' },
   { title: 'Wallet', icon: 'account_balance_wallet', link: '/expenses' },
-  { title: 'Reports', icon: 'analytics', link: '/error' },
+  { title: 'Reports', icon: 'analytics', link: '/reports' },
   { title: 'Settings', icon: 'settings', link: '/settings' }
 ]
 
